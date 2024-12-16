@@ -1,135 +1,92 @@
-# GhostBSD Hearing Aid Setup Wizard
+#GhostBSD Hearing Aid Setup Wizard
 
-**A user-friendly GTK4/Python wizard** that helps you **install** and **configure** Bluetooth hearing aids on GhostBSD. It includes:
-
-- **Robust BLE Scanning (Experimental)**  
-  Performs classic Bluetooth inquiry plus a basic BLE advertisement scan.
-- **First Principles Approach**  
-  If direct pairing fails (proprietary BLE/MFi hearing aids), the wizard guides you to bridging accessories.
-- **Internationalization (i18n)**  
-  Uses `.po` translation files to support multiple languages.
-- **Wizard-Style Flow**  
-  Multi-page setup process: intro → discover → pair → configure PulseAudio → bridging info → finish.
-
-## Table of Contents
-
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Internationalization (i18n)](#internationalization-i18n)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [License](#license)
+A **Python/GTK3** wizard to help you **discover**, **pair**, and **configure** Bluetooth hearing aids on **GhostBSD**.  
+Includes **experimental BLE scanning**, bridging accessory documentation, and i18n support.
 
 ---
 
 ## Features
 
-- **BLE + Classic Discovery**: Uses `hccontrol` to do standard inquiry and partial BLE scanning (via `le_set_scan_enable`).  
-- **User-Friendly Wizard**: Guides you step by step: discovering devices, pairing, configuring PulseAudio, bridging info.  
-- **Logging**: All steps and errors are logged to both the GUI text pane and `/var/log/ghostbsd-hearingaid-setup.log`.  
-- **Bridging Accessory Documentation**: If you have a bridging dongle from the manufacturer, the wizard can open a `bridging_info.md` doc or PDF for instructions.
+1. **Wizard Flow**: Intro → Discover → Pair → Configure PulseAudio → Bridging Info → Finish  
+2. **BLE + Classic**: Utilizes GhostBSD’s native Bluetooth stack, attempts BLE scanning via `hccontrol` + parsing `dmesg`.  
+3. **Bridging**: If direct pairing fails (BLE or MFi hearing aids), a bridging accessory doc is included.  
+4. **i18n**: `.po` files compiled into `.mo`.  
+5. **No separate** `pulseaudio-module-bluetooth`: On GhostBSD, Bluetooth support must be compiled into PulseAudio.
 
 ---
 
 ## Prerequisites
 
-1. **GhostBSD / FreeBSD** environment.  
-2. **Root privileges** (recommended) to edit system configs, install packages, and restart services.  
-3. **Python 3.9+**  
-4. **GTK4 & PyGObject**  
-   ```bash
-   pkg install -y py39-gobject3 gtk4
-   ```
-5. **Bluetooth Tools**  
-   - `hccontrol`, `usbconfig` (usually in base system)  
-   - `pulseaudio`, `pulseaudio-module-bluetooth`  
+- **GhostBSD** environment, root privileges recommended.  
+- **GhostBSD-bluetooth** packages for the underlying BT stack. (e.g., `GhostBSD-bluetooth-24.10.1`)  
+- **PulseAudio**: If you want A2DP/HFP streaming, ensure PulseAudio is built with Bluetooth. If the default package lacks BT, recompile from ports:
+  ```bash
+  cd /usr/ports/audio/pulseaudio
+  make config  # enable Bluetooth / BLUEZ
+  make install clean
 
----
+    GTK4 + PyGObject for the GUI wizard:
 
-## Installation
+    pkg install -y py311-pygobject gtk3
 
-1. **Clone or Download** this repository.  
-2. **Ensure** the `install-ghostbsd-hearingaid-setup.sh` script and `ghostbsd_hearingaid_setup.py` are in the same directory.  
-3. **Make the install script executable** and run it as root:
-   ```bash
-   chmod +x install-ghostbsd-hearingaid-setup.sh
-   sudo ./install-ghostbsd-hearingaid-setup.sh
-   ```
-   This creates an installation directory (e.g. `/usr/local/share/ghostbsd_hearingaid_setup`), copies files, and installs a `.desktop` entry.
+## Installation (setup.py)
 
----
+- **Clone** this repository:
+  ```bash
+  git clone https://github.com/YourUser/ghostbsd-hearingaid-setup.git
+  cd ghostbsd-hearingaid-setup
+  ```
+
+- **Install** the wizard using Python:
+  ```bash
+  sudo python3 setup.py install
+  ```
+  - Copies ghostbsd_hearingaid_setup.py to /usr/local/share/ghostbsd_hearingaid_setup.
+  - Compiles .po translation files under locale/.
+  - Creates /usr/local/bin/ghostbsd-hearingaid-setup wrapper script.
+  - Installs a .desktop entry at /usr/local/share/applications/ghostbsd_hearingaid_setup.desktop.
+
+Note: This does not install a separate pulseaudio-module-bluetooth (which doesn’t exist on GhostBSD). You must build or configure PulseAudio with Bluetooth support if needed.
 
 ## Usage
 
-After installation:
-
-- **Launch** from the system menu (search for “GhostBSD Hearing Aid Setup”)  
-  **OR** type:
+After installation, run:
   ```bash
   ghostbsd-hearingaid-setup
   ```
-- Follow the wizard pages:
-  1. **Intro** – Explains direct vs bridging approach.  
-  2. **Discover** – Installs needed packages, restarts daemons, runs classic and BLE scans.  
-  3. **Pair** – Lists discovered devices. Click “Pair Selected Device.”  
-  4. **Configure PulseAudio** – Adds `module-bluetooth-discover` and restarts PulseAudio.  
-  5. **Bridging Info** – If direct pairing fails for proprietary BLE or MFi devices, read bridging instructions.  
-  6. **Finish** – Closes the wizard.
 
-The script logs output to **`/var/log/ghostbsd-hearingaid-setup.log`**.
+**Wizard Steps:**
 
----
+  -  **Intro** – Explains no separate BT module, bridging notes.
+  -  **Discover** – Installs needed packages, attempts classic + BLE scanning.
+  -  **Pair** – Writes hcsecd.conf, tries create_connection.
+  -  **Configure PulseAudio** – Attempts to load module-bluetooth-discover; if missing, rebuild PulseAudio.
+  -  **Bridging** – If device is BLE-only or proprietary, references bridging doc.
+  -  **Finish** – Summarizes next steps, logs in /var/log/ghostbsd-hearingaid-setup.log.
 
 ## Internationalization (i18n)
 
-1. **Compile `.po` files** to `.mo`:
-   ```bash
-   msgfmt -o locale/es/LC_MESSAGES/ghostbsd_hearingaid_setup.mo locale/es/LC_MESSAGES/ghostbsd_hearingaid_setup.po
-   ```
-2. **Set Locale**:
-   ```bash
-   LANG=es_ES.UTF-8 ghostbsd-hearingaid-setup
-   ```
-   The wizard interface will display translated strings if `.mo` files are installed.
-
----
+  - Place .po files under locale/<lang>/LC_MESSAGES/<appname>.po.
+  - The setup.py install step compiles them into .mo.
+  - Run with a locale:
+    ```bash
+    LANG=es_ES.UTF-8 ghostbsd-hearingaid-setup
+    ```
 
 ## Troubleshooting
 
-1. **No Bluetooth Adapter Detected**  
-   - Run `usbconfig list` to confirm your dongle or built-in adapter is recognized.  
-   - Some adapters may lack FreeBSD driver support.
-
-2. **Pairing Fails Consistently**  
-   - Your hearing aids may use proprietary BLE or MFi protocols. Use a bridging accessory.  
-   - Check logs in `/var/log/ghostbsd-hearingaid-setup.log`.
-
-3. **PulseAudio Not Restarting**  
-   - Manually run `pulseaudio --kill && pulseaudio --start`.  
-   - If you’re using PipeWire, the wizard’s PulseAudio logic might not fully apply.
-
----
+  - PulseAudio Not Finding BT Devices: Possibly no BT support compiled in. Rebuild from ports with the Bluetooth/BlueZ option.
+  - Pairing Fails: The hearing aid may use specialized BLE or MFi protocols. Use a bridging dongle.
+  - No separate pulseaudio-module-bluetooth: GhostBSD doesn’t split that out.
+  - Check Logs: /var/log/ghostbsd-hearingaid-setup.log.
 
 ## Contributing
 
-1. **Fork** this repository.  
-2. **Create** a new branch for your feature or fix:  
-   ```bash
-   git checkout -b feature/my-feature
-   ```  
-3. **Commit & push** your changes, then **open a pull request**.
-
-Areas for improvement include:
-
-- More advanced BLE/GATT scanning logic.  
-- Additional wizard pages for advanced debugging.  
-- Better bridging device support.
-
----
+  - Fork this repo.
+  - Branch off for your changes: git checkout -b feature/something.
+  - Commit & push, open a Pull Request.
 
 ## License
 
-This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.
+MIT License. See ARCHITECTURE.md or the top of ghostbsd_hearingaid_setup.py for license info.
 

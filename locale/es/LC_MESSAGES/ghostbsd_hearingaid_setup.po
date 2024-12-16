@@ -1,0 +1,30 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: ghostbsd_hearingaid_setup 1.0\n"
+"Report-Msgid-Bugs-To: support@example.com\n"
+"PO-Revision-Date: 2024-01-01 12:00+0000\n"
+"Last-Translator: Jane Doe <jane@example.com>\n"
+"Language-Team: Spanish\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: es\n"
+
+#: ../ghostbsd_hearingaid_setup.py:XX
+msgid "GhostBSD Hearing Aid Setup Wizard (BLE & i18n)"
+msgstr "Asistente de Configuración de Audífonos GhostBSD (BLE & i18n)"
+
+#: ../ghostbsd_hearingaid_setup.py:XX
+msgid "<b>Welcome to GhostBSD Hearing Aid Setup Wizard!</b>"
+msgstr "<b>¡Bienvenido al Asistente de Configuración de Audífonos en GhostBSD!</b>"
+
+#: ../ghostbsd_hearingaid_setup.py:XX
+msgid "Discover Devices"
+msgstr "Descubrir dispositivos"
+
+#: ../ghostbsd_hearingaid_setup.py:XX
+msgid "Pair Selected Device"
+msgstr "Emparejar dispositivo seleccionado"
+
+# ... More translations ...
+

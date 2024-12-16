@@ -180,8 +180,7 @@ class WizardWindow(Gtk.Window):
         page_label.set_use_markup(True)
 
         info_label = Gtk.Label(
-            label=_("This wizard is built in GTK3. GhostBSD doesn't have 'pulseaudio-module-bluetooth'. "
-                    "Ensure PulseAudio is built with Bluetooth support. If your hearing aids rely on proprietary BLE/MFi, "
+            label=_("If your hearing aids rely on proprietary BLE/MFi, "
                     "use a bridging accessory.")
         )
         info_label.set_line_wrap(True)

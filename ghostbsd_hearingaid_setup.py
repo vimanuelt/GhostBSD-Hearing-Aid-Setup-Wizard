@@ -16,6 +16,8 @@ import shutil
 import gettext
 from datetime import datetime
 from time import sleep
+import threading
+import logging
 
 APP_NAME = "ghostbsd_hearingaid_setup"
 LOCALE_DIR = os.path.join(os.path.dirname(__file__), "locale")
@@ -28,6 +30,11 @@ RC_CONF = "/etc/rc.conf"
 HCSECD_CONF = "/etc/bluetooth/hcsecd.conf"
 PA_CONF_SYSTEM = "/usr/local/etc/pulse/default.pa"
 LOGFILE_PATH = "/var/log/ghostbsd-hearingaid-setup.log"
+
+# Configure logging
+logging.basicConfig(filename=LOGFILE_PATH, level=logging.INFO, 
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 class WizardWindow(Gtk.Window):
     def __init__(self):
@@ -85,11 +92,10 @@ class WizardWindow(Gtk.Window):
 
     def init_logfile(self):
         try:
-            # Attempt to open the log in /var/log
-            self.log_file = open(LOGFILE_PATH, "a", encoding="utf-8")
-            self.log(_("Log file opened at {}").format(LOGFILE_PATH), error=False)
+            with open(LOGFILE_PATH, "a", encoding="utf-8") as log_file:
+                self.log_file = log_file
+                logger.info(f"Log file opened at {LOGFILE_PATH}")
         except PermissionError:
-            # If permission fails, show an error dialog
             self.show_error_dialog(
                 _("Failed to open log file at {}. Check permissions.").format(LOGFILE_PATH)
             )
@@ -105,7 +111,7 @@ class WizardWindow(Gtk.Window):
                     "Ensure PulseAudio is built with Bluetooth support. If your hearing aids rely on proprietary BLE/MFi, "
                     "use a bridging accessory.")
         )
-        info_label.set_wrap(True)
+        info_label.set_line_wrap(True)
 
         page.pack_start(page_label, False, False, 0)
         page.pack_start(info_label, True, True, 0)
@@ -113,8 +119,9 @@ class WizardWindow(Gtk.Window):
 
     def build_discover_page(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        page_title = Gtk.Label(label=_("<b>Step 1: Discover Nearby Devices (Classic &amp; BLE)</b>"))
+        page_title = Gtk.Label(label=_("<b>Step 1: Discover Nearby Devices (Classic & BLE)</b>"))
         page_title.set_use_markup(True)
+        page_title.set_line_wrap(True)
 
         discover_button = Gtk.Button(label=_("Discover Devices"))
         discover_button.connect("clicked", self.on_discover_clicked)
@@ -136,11 +143,12 @@ class WizardWindow(Gtk.Window):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         page_title = Gtk.Label(label=_("<b>Step 2: Pair Your Hearing Aids</b>"))
         page_title.set_use_markup(True)
+        page_title.set_line_wrap(True)
 
         list_label = Gtk.Label(
             label=_("Select a device below and click 'Pair Selected Device'. If BLE-only or proprietary, bridging may be required.")
         )
-        list_label.set_wrap(True)
+        list_label.set_line_wrap(True)
 
         self.store = Gtk.ListStore(str, str, str)  # [MAC, DeviceName, Type]
         self.treeview = Gtk.TreeView(model=self.store)
@@ -150,7 +158,6 @@ class WizardWindow(Gtk.Window):
         col_name = Gtk.TreeViewColumn(_("Device Name"), renderer_text, text=1)
         col_type = Gtk.TreeViewColumn(_("Type"), renderer_text, text=2)
 
-        # Even in GTK3, append_column might be deprecated, but it works.
         self.treeview.append_column(col_mac)
         self.treeview.append_column(col_name)
         self.treeview.append_column(col_type)
@@ -173,11 +180,12 @@ class WizardWindow(Gtk.Window):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         page_title = Gtk.Label(label=_("<b>Step 3: Configure PulseAudio</b>"))
         page_title.set_use_markup(True)
+        page_title.set_line_wrap(True)
 
         desc_label = Gtk.Label(
             label=_("We'll attempt to load 'module-bluetooth-discover'. If that fails, recompile PulseAudio from ports with BT support.")
         )
-        desc_label.set_wrap(True)
+        desc_label.set_line_wrap(True)
 
         config_button = Gtk.Button(label=_("Try Configure PulseAudio"))
         config_button.connect("clicked", self.on_configure_system)
@@ -191,11 +199,12 @@ class WizardWindow(Gtk.Window):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         page_title = Gtk.Label(label=_("<b>Step 4: Bridging Accessory Info</b>"))
         page_title.set_use_markup(True)
+        page_title.set_line_wrap(True)
 
         bridging_label = Gtk.Label(
             label=_("If direct pairing fails, bridging dongles from the manufacturer may be needed. Click below to see bridging docs.")
         )
-        bridging_label.set_wrap(True)
+        bridging_label.set_line_wrap(True)
 
         bridging_button = Gtk.Button(label=_("View Bridging Documentation"))
         bridging_button.connect("clicked", self.on_show_bridging_doc)
@@ -208,17 +217,24 @@ class WizardWindow(Gtk.Window):
     def build_finish_page(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         page_label = Gtk.Label(label=_("<b>Finished Setup</b>"))
+       
+
+    def build_finish_page(self):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        page_label = Gtk.Label(label=_("<b>Finished Setup</b>"))
         page_label.set_use_markup(True)
+        page_label.set_line_wrap(True)
 
         finish_text = Gtk.Label(
             label=_("If your hearing aids appear as a standard Bluetooth device, set them as default in pavucontrol. "
                     "Otherwise, bridging or advanced debug is required. Logs are in /var/log/ghostbsd-hearingaid-setup.log.")
         )
-        finish_text.set_wrap(True)
+        finish_text.set_line_wrap(True)
 
         page.pack_start(page_label, False, False, 0)
         page.pack_start(finish_text, True, True, 0)
         return page
+
 
     # Navigation
     def update_nav_buttons(self):
@@ -229,12 +245,14 @@ class WizardWindow(Gtk.Window):
         else:
             self.next_button.set_label(_("Next"))
 
+
     def on_back_clicked(self, button):
         idx = self.pages.index(self.current_page)
         if idx > 0:
             self.current_page = self.pages[idx - 1]
             self.stack.set_visible_child_name(self.current_page)
             self.update_nav_buttons()
+
 
     def on_next_clicked(self, button):
         idx = self.pages.index(self.current_page)
@@ -245,6 +263,7 @@ class WizardWindow(Gtk.Window):
         else:
             # finish
             self.destroy()
+
 
     # Discovery logic
     def on_discover_clicked(self, button):
@@ -301,9 +320,17 @@ class WizardWindow(Gtk.Window):
         self.run_command(["hccontrol", "-n", "ubt0hci", "le_set_scan_params", "0", "0x10", "0x10", "0", "0"], raise_on_error=False)
         self.run_command(["hccontrol", "-n", "ubt0hci", "le_set_scan_enable", "1", "0"], raise_on_error=False)
         self.log(_("Waiting 5s for BLE advertisements..."), error=False)
-        sleep(5)
-        self.run_command(["hccontrol", "-n", "ubt0hci", "le_set_scan_enable", "0", "0"], raise_on_error=False)
+        
 
+        def delay_scan():
+            sleep(5)
+            self.run_command(["hccontrol", "-n", "ubt0hci", "le_set_scan_enable", "0", "0"], raise_on_error=False)
+            GLib.idle_add(self.continue_after_scan)
+
+        threading.Thread(target=delay_scan).start()
+
+
+    def continue_after_scan(self):
         ret, dmesg_out = self.run_command(["dmesg"], raise_on_error=False)
         ble_macs = re.findall(r'LE Address: ([0-9A-Fa-f:]{17})', dmesg_out or "")
         ble_macs = list(set(ble_macs))
@@ -333,12 +360,14 @@ class WizardWindow(Gtk.Window):
         self.stack.set_visible_child_name("pair")
         self.update_nav_buttons()
 
+
     def on_treeview_row_activated(self, treeview, path, column):
         model = self.treeview.get_model()
         treeiter = model.get_iter(path)
         if treeiter:
             bdaddr = model.get_value(treeiter, 0)
             self.pair_device(bdaddr)
+
 
     def on_pair_selected_device(self, button):
         selection = self.treeview.get_selection()
@@ -348,6 +377,7 @@ class WizardWindow(Gtk.Window):
             self.pair_device(bdaddr)
         else:
             self.log(_("No device selected."), error=True)
+
 
     def pair_device(self, bdaddr):
         if not re.match(r'^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$', bdaddr):
@@ -360,6 +390,7 @@ class WizardWindow(Gtk.Window):
             self.log(_("Connection attempt failed. Possibly BLE-only."), error=True)
         else:
             self.log(_("Connection attempt succeeded or in progress."), error=False)
+
 
     def on_configure_system(self, button):
         self.log(_("Trying to load 'module-bluetooth-discover' in PulseAudio..."), error=False)
@@ -386,6 +417,7 @@ class WizardWindow(Gtk.Window):
         self.run_command(["pulseaudio", "--start"], raise_on_error=False)
         self.log(_("If it fails, recompile PulseAudio with Bluetooth."), error=False)
 
+
     def on_show_bridging_doc(self, button):
         bridging_doc = "bridging_info.md"
         if os.path.isfile(bridging_doc):
@@ -396,6 +428,7 @@ class WizardWindow(Gtk.Window):
                 self.log(_("Failed to open bridging doc: {}").format(e), error=True)
         else:
             self.log(_("No bridging_info.md found."), error=False)
+
 
     # Utility
     def run_command(self, cmd_list, raise_on_error=True):
@@ -412,20 +445,30 @@ class WizardWindow(Gtk.Window):
                 err_msg = _("Command failed: {} (retcode {})").format(cmd_str, result.returncode)
                 self.log(err_msg, error=True)
             return result.returncode, result.stdout
+        except subprocess.CalledProcessError as e:
+            self.log(f"Command '{cmd_str}' failed with return code {e.returncode}: {e.output}", error=True)
+            if raise_on_error:
+                raise
         except Exception as e:
-            err_msg = _("Exception running command: {}").format(e)
-            self.log(err_msg, error=True)
-            return 1, ""
+            self.log(f"Unexpected error running '{cmd_str}': {e}", error=True)
+            if raise_on_error:
+                raise
+        return 1, ""
+
 
     def log(self, text, error=False):
+        if error:
+            logger.error(text)
+        else:
+            logger.info(text)
+        
+        # GUI update
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         message = f"[{timestamp}] {text}\n"
-
-        # Insert into textview buffer
         end_iter = self.buffer.get_end_iter()
         self.buffer.insert(end_iter, message)
 
-        # Also write to log file if open
+        # Write to log file if open
         if self.log_file:
             try:
                 self.log_file.write(message)
@@ -436,17 +479,19 @@ class WizardWindow(Gtk.Window):
         if error:
             self.show_error_dialog(text)
 
+
     def show_error_dialog(self, error_message):
-        # In GTK3, message_format works
         dialog = Gtk.MessageDialog(
             parent=self,
             flags=0,
+            message_type=Gtk.MessageType.ERROR,
             buttons=Gtk.ButtonsType.OK,
-            message_format=error_message
+            text=_("Error")
         )
-        dialog.set_title(_("Error"))
+        dialog.format_secondary_text(error_message)
         dialog.run()
         dialog.destroy()
+
 
     def enable_rc_conf(self, key, value):
         if not os.path.isfile(RC_CONF):
@@ -466,6 +511,13 @@ class WizardWindow(Gtk.Window):
                 f.writelines(lines)
         except Exception as e:
             self.log(_("Failed to modify {}: {}").format(RC_CONF, e), error=True)
+
+
+    def setup_hcsecd_conf(self, bdaddr):
+        self.log(_("Updating {} for pairing with {}").format(HCSECD_CONF, bdaddr), error=False)
+        if os.path.isfile(HCSECD_CONF):
+            backup_path = f"{HCSECD_CONF}.bak.{int(GLib.get_real_time()/1000)}"
+
 
     def setup_hcsecd_conf(self, bdaddr):
         self.log(_("Updating {} for pairing with {}").format(HCSECD_CONF, bdaddr), error=False)
@@ -496,6 +548,7 @@ device {{
         self.run_command(["service", "sdpd", "restart"], raise_on_error=False)
         self.log(_("Bluetooth services restarted with updated config."), error=False)
 
+
 def main():
     win = WizardWindow()
     win.connect("destroy", Gtk.main_quit)
@@ -504,4 +557,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

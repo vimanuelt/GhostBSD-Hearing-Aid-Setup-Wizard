@@ -107,7 +107,7 @@ class WizardWindow(Gtk.Window):
         page_label.set_use_markup(True)
 
         info_label = Gtk.Label(
-            label=_("If your hearing aids rely on proprietary BLE/MFi,"
+            label=_("If your hearing aids rely on proprietary BLE/MFi, "
                     "use a bridging accessory.")
         )
         info_label.set_line_wrap(True)

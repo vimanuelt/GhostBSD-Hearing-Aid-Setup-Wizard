@@ -1,7 +1,5 @@
 # GhostBSD Hearing Aid Setup Wizard
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-
 This is a GTK3-based wizard designed to simplify the process of setting up Bluetooth hearing aids on GhostBSD. The application guides users through:
 
 - **Configuring system services** for Bluetooth support

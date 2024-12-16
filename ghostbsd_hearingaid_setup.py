@@ -24,12 +24,13 @@ LOCALE_DIR = os.path.join(os.path.dirname(__file__), "locale")
 
 gettext.bindtextdomain(APP_NAME, LOCALE_DIR)
 gettext.textdomain(APP_NAME)
-_ = gettext.gettext
+_ = gettext.gettext  # Ensure _ is set to gettext.gettext
 
 RC_CONF = "/etc/rc.conf"
 HCSECD_CONF = "/etc/bluetooth/hcsecd.conf"
 PA_CONF_SYSTEM = "/usr/local/etc/pulse/default.pa"
 LOGFILE_PATH = "/var/log/ghostbsd-hearingaid-setup.log"
+UBT0_CONF = "/etc/bluetooth/ubt0.conf"
 
 # Configure logging
 logging.basicConfig(filename=LOGFILE_PATH, level=logging.INFO, 
@@ -47,21 +48,31 @@ class WizardWindow(Gtk.Window):
         # Wizard pages via Gtk.Stack
         self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, transition_duration=400)
 
+        # New pages for additional setup steps
+        self.config_services_page = self.build_config_services_page()
+        self.install_packages_page = self.build_install_packages_page()
+        self.setup_bluetooth_page = self.build_setup_bluetooth_page()
+        self.create_virtual_sound_page = self.build_create_virtual_sound_page()
+
         self.intro_page = self.build_intro_page()
         self.discover_page = self.build_discover_page()
         self.pair_page = self.build_pair_page()
-        self.config_page = self.build_config_page()
+        self.config_pulseaudio_page = self.build_config_pulseaudio_page()
         self.bridging_page = self.build_bridging_page()
         self.finish_page = self.build_finish_page()
 
         self.stack.add_named(self.intro_page, "intro")
+        self.stack.add_named(self.config_services_page, "config_services")
+        self.stack.add_named(self.install_packages_page, "install_packages")
+        self.stack.add_named(self.setup_bluetooth_page, "setup_bluetooth")
         self.stack.add_named(self.discover_page, "discover")
         self.stack.add_named(self.pair_page, "pair")
-        self.stack.add_named(self.config_page, "config")
+        self.stack.add_named(self.config_pulseaudio_page, "config_pulseaudio")
+        self.stack.add_named(self.create_virtual_sound_page, "create_virtual_sound")
         self.stack.add_named(self.bridging_page, "bridge")
         self.stack.add_named(self.finish_page, "finish")
 
-        self.pages = ["intro", "discover", "pair", "config", "bridge", "finish"]
+        self.pages = ["intro", "config_services", "install_packages", "setup_bluetooth", "discover", "pair", "config_pulseaudio", "create_virtual_sound", "bridge", "finish"]
         self.current_page = "intro"
         self.stack.set_visible_child_name("intro")
 
@@ -90,6 +101,7 @@ class WizardWindow(Gtk.Window):
         if os.geteuid() != 0:
             self.log(_("WARNING: Run as root for best results."), error=False)
 
+
     def init_logfile(self):
         try:
             with open(LOGFILE_PATH, "a", encoding="utf-8") as log_file:
@@ -100,14 +112,76 @@ class WizardWindow(Gtk.Window):
                 _("Failed to open log file at {}. Check permissions.").format(LOGFILE_PATH)
             )
 
-    # Pages
+
+    def build_config_services_page(self):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        page_title = Gtk.Label(label=_("<b>Step 1: Configure System Services</b>"))
+        page_title.set_use_markup(True)
+        page_title.set_line_wrap(True)
+
+        config_button = Gtk.Button(label=_("Configure Services"))
+        config_button.connect("clicked", self.on_configure_services)
+
+        page.pack_start(page_title, False, False, 0)
+        page.pack_start(config_button, False, False, 0)
+        return page
+
+
+    def build_install_packages_page(self):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        page_title = Gtk.Label(label=_("<b>Step 2: Install Required Packages</b>"))
+        page_title.set_use_markup(True)
+        page_title.set_line_wrap(True)
+
+        install_button = Gtk.Button(label=_("Install Packages"))
+        install_button.connect("clicked", self.on_install_packages)
+
+        page.pack_start(page_title, False, False, 0)
+        page.pack_start(install_button, False, False, 0)
+        return page
+
+
+    def build_setup_bluetooth_page(self):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        page_title = Gtk.Label(label=_("<b>Step 3: Setup Bluetooth Configuration</b>"))
+        page_title.set_use_markup(True)
+        page_title.set_line_wrap(True)
+
+        setup_button = Gtk.Button(label=_("Setup Bluetooth"))
+        setup_button.connect("clicked", self.on_setup_bluetooth)
+
+        page.pack_start(page_title, False, False, 0)
+        page.pack_start(setup_button, False, False, 0)
+        return page
+
+
+    def build_create_virtual_sound_page(self):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        page_title = Gtk.Label(label=_("<b>Step 7: Create Virtual Sound Device</b>"))
+        page_title.set_use_markup(True)
+        page_title.set_line_wrap(True)
+
+        create_button = Gtk.Button(label=_("Create Virtual Sound"))
+        create_button.connect("clicked", self.on_create_virtual_sound)
+
+        self.virtual_sound_text = Gtk.Entry()
+        self.virtual_sound_text.set_text("buds")
+
+        page.pack_start(page_title, False, False, 0)
+        page.pack_start(Gtk.Label(label=_("Enter device name (e.g., 'buds'):")), False, False, 0)  # Fixed positional arguments issue
+        page.pack_start(self.virtual_sound_text, False, False, 0)
+        page.pack_start(create_button, False, False, 0)
+        return page
+
+
     def build_intro_page(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         page_label = Gtk.Label(label=_("<b>Welcome to GhostBSD Hearing Aid Setup Wizard!</b>"))
         page_label.set_use_markup(True)
 
         info_label = Gtk.Label(
-            label=_("If your hearing aids rely on proprietary BLE/MFi, "
+            label=_("This wizard is built in GTK3. GhostBSD doesn't have 'pulseaudio-module-bluetooth'. "
+                    "Ensure PulseAudio is built with Bluetooth support. If your hearing aids rely on proprietary BLE/MFi, "
                     "use a bridging accessory.")
         )
         info_label.set_line_wrap(True)
@@ -116,9 +190,10 @@ class WizardWindow(Gtk.Window):
         page.pack_start(info_label, True, True, 0)
         return page
 
+
     def build_discover_page(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        page_title = Gtk.Label(label=_("<b>Step 1: Discover Nearby Devices, both Classic and BLE</b>"))
+        page_title = Gtk.Label(label=_("<b>Step 4: Discover Nearby Devices (Classic & BLE)</b>"))
         page_title.set_use_markup(True)
         page_title.set_line_wrap(True)
 
@@ -138,9 +213,10 @@ class WizardWindow(Gtk.Window):
         page.pack_start(scroll_log, True, True, 0)
         return page
 
+
     def build_pair_page(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        page_title = Gtk.Label(label=_("<b>Step 2: Pair Your Hearing Aids</b>"))
+        page_title = Gtk.Label(label=_("<b>Step 5: Pair Your Hearing Aids</b>"))
         page_title.set_use_markup(True)
         page_title.set_line_wrap(True)
 
@@ -175,9 +251,10 @@ class WizardWindow(Gtk.Window):
         page.pack_start(self.pair_button, False, False, 0)
         return page
 
-    def build_config_page(self):
+
+    def build_config_pulseaudio_page(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        page_title = Gtk.Label(label=_("<b>Step 3: Configure PulseAudio</b>"))
+        page_title = Gtk.Label(label=_("<b>Step 6: Configure PulseAudio</b>"))
         page_title.set_use_markup(True)
         page_title.set_line_wrap(True)
 
@@ -194,9 +271,10 @@ class WizardWindow(Gtk.Window):
         page.pack_start(config_button, False, False, 0)
         return page
 
+
     def build_bridging_page(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        page_title = Gtk.Label(label=_("<b>Step 4: Bridging Accessory Info</b>"))
+        page_title = Gtk.Label(label=_("<b>Step 8: Bridging Accessory Info</b>"))
         page_title.set_use_markup(True)
         page_title.set_line_wrap(True)
 
@@ -213,10 +291,6 @@ class WizardWindow(Gtk.Window):
         page.pack_start(bridging_button, False, False, 0)
         return page
 
-    def build_finish_page(self):
-        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        page_label = Gtk.Label(label=_("<b>Finished Setup</b>"))
-       
 
     def build_finish_page(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -235,6 +309,60 @@ class WizardWindow(Gtk.Window):
         return page
 
 
+    # New methods for additional steps
+    def on_configure_services(self, button):
+        self.log(_("Updating /etc/rc.conf for Bluetooth services..."), error=False)
+        self.enable_rc_conf("sdpd_enable", "YES")
+        self.enable_rc_conf("hcsecd_enable", "YES")
+        self.log(_("Services configured in rc.conf."), error=False)
+
+
+    def on_install_packages(self, button):
+        self.log(_("Installing necessary packages..."), error=False)
+        packages = ["iwmbt-firmware", "virtual_oss"]
+        for package in packages:
+            ret, _ = self.run_command(["pkg", "install", "-y", package], raise_on_error=False)
+            if ret == 0:
+                self.log(_("Successfully installed {}").format(package), error=False)
+            else:
+                self.log(_("Failed to install {}").format(package), error=True)
+
+
+    def on_setup_bluetooth(self, button):
+        self.log(_("Setting up Bluetooth configuration..."), error=False)
+        if not os.path.exists(UBT0_CONF):
+            self.log(_("Creating {}").format(UBT0_CONF), error=False)
+            try:
+                with open(UBT0_CONF, "w") as f:
+                    f.write("""authentication_enable="YES"
+connectable="YES"
+discoverable="YES"
+role_switch="YES"
+""")
+            except Exception as e:
+                self.log(_("Failed to create {}: {}").format(UBT0_CONF, e), error=True)
+        else:
+            self.log(_("{} already exists.").format(UBT0_CONF), error=False)
+        
+        self.log(_("Restarting system to apply Bluetooth settings..."), error=False)
+        self.run_command(["reboot"], raise_on_error=False)  # Note: This command will close the application
+
+
+    def on_create_virtual_sound(self, button):
+        _ = gettext.gettext  # Ensure _ is a function
+        device_name = self.virtual_sound_text.get_text()
+        if not device_name:
+            self.log(_("Please enter a device name."), error=True)
+            return
+
+        command = f"virtual_oss -T /dev/sndstat -S -a o,-4 -C 2 -c 2 -r 44100 -b 16 -s 1024 -R /dev/dsp0 -P /dev/bluetooth/{device_name} -d dsp -t vdsp.ctl"
+        ret, _ = self.run_command(command.split(), raise_on_error=False)
+        if ret == 0:
+            self.log(_("Virtual sound device created successfully."), error=False)
+        else:
+            self.log(_("Failed to create virtual sound device. Try changing sample rate to 48000 if sound is strange."), error=True)
+
+
     # Navigation
     def update_nav_buttons(self):
         idx = self.pages.index(self.current_page)
@@ -244,14 +372,12 @@ class WizardWindow(Gtk.Window):
         else:
             self.next_button.set_label(_("Next"))
 
-
     def on_back_clicked(self, button):
         idx = self.pages.index(self.current_page)
         if idx > 0:
             self.current_page = self.pages[idx - 1]
             self.stack.set_visible_child_name(self.current_page)
             self.update_nav_buttons()
-
 
     def on_next_clicked(self, button):
         idx = self.pages.index(self.current_page)
@@ -319,8 +445,8 @@ class WizardWindow(Gtk.Window):
         self.run_command(["hccontrol", "-n", "ubt0hci", "le_set_scan_params", "0", "0x10", "0x10", "0", "0"], raise_on_error=False)
         self.run_command(["hccontrol", "-n", "ubt0hci", "le_set_scan_enable", "1", "0"], raise_on_error=False)
         self.log(_("Waiting 5s for BLE advertisements..."), error=False)
-        
 
+        
         def delay_scan():
             sleep(5)
             self.run_command(["hccontrol", "-n", "ubt0hci", "le_set_scan_enable", "0", "0"], raise_on_error=False)
@@ -516,12 +642,6 @@ class WizardWindow(Gtk.Window):
         self.log(_("Updating {} for pairing with {}").format(HCSECD_CONF, bdaddr), error=False)
         if os.path.isfile(HCSECD_CONF):
             backup_path = f"{HCSECD_CONF}.bak.{int(GLib.get_real_time()/1000)}"
-
-
-    def setup_hcsecd_conf(self, bdaddr):
-        self.log(_("Updating {} for pairing with {}").format(HCSECD_CONF, bdaddr), error=False)
-        if os.path.isfile(HCSECD_CONF):
-            backup_path = f"{HCSECD_CONF}.bak.{int(GLib.get_real_time()/1000)}"
             try:
                 shutil.copyfile(HCSECD_CONF, backup_path)
                 self.log(_("Backed up existing hcsecd.conf to {}").format(backup_path), error=False)
@@ -556,3 +676,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

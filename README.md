@@ -31,17 +31,13 @@ To use this setup wizard, you can clone this repository:
   ```bash
   git clone https://github.com/vimanuelt/GhostBSD-Hearing-Aid-Setup-Wizard.git
   cd GhostBSD-Hearing-Aid-Setup-Wizard
-  ```
-
-Then, make the script executable:
-  ```bash
-  chmod +x ghostbsd_hearingaid_setup.py
+  sudo python setup.py install
   ```
 
 ## Usage
 Run the wizard with root privileges:
   ```bash
-  sudo ./ghostbsd_hearingaid_setup.py
+  sudo ghostbsd_hearingaid_setup
   ```
 
 Note: You'll be guided through each step of the setup process. If you encounter any issues, check the log file at /var/log/ghostbsd-hearingaid-setup.log.

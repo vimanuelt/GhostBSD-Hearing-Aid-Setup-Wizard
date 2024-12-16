@@ -65,3 +65,4 @@ Contributions are welcome! Please fork this repository and submit pull requests 
 
   - **GhostBSD Community:** For providing a fantastic BSD-based operating system.
   - **Python and GTK Community:** For the tools that made this setup wizard possible.
+  - **@Neville1905** on https://t.me/ghostbsd: For the bluetooth setup instructions.

@@ -107,8 +107,7 @@ class WizardWindow(Gtk.Window):
         page_label.set_use_markup(True)
 
         info_label = Gtk.Label(
-            label=_("This wizard is built in GTK3. GhostBSD doesn't have 'pulseaudio-module-bluetooth'. "
-                    "Ensure PulseAudio is built with Bluetooth support. If your hearing aids rely on proprietary BLE/MFi, "
+            label=_("If your hearing aids rely on proprietary BLE/MFi,"
                     "use a bridging accessory.")
         )
         info_label.set_line_wrap(True)
@@ -119,7 +118,7 @@ class WizardWindow(Gtk.Window):
 
     def build_discover_page(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        page_title = Gtk.Label(label=_("<b>Step 1: Discover Nearby Devices (Classic & BLE)</b>"))
+        page_title = Gtk.Label(label=_("<b>Step 1: Discover Nearby Devices, both Classic and BLE</b>"))
         page_title.set_use_markup(True)
         page_title.set_line_wrap(True)
 

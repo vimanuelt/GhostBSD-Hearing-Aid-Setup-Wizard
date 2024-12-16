@@ -67,5 +67,5 @@ Contributions are welcome! Please fork this repository and submit pull requests 
 
 ## Acknowledgements
 
-    GhostBSD Community: For providing a fantastic BSD-based operating system.
-    Python and GTK Community: For the tools that made this setup wizard possible.
+    - GhostBSD Community: For providing a fantastic BSD-based operating system.
+    - Python and GTK Community: For the tools that made this setup wizard possible.

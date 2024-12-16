@@ -55,7 +55,7 @@ Note: You'll be guided through each step of the setup process. If you encounter 
 
 ## Known Issues
 
-    This tool assumes your hearing aids support standard Bluetooth profiles. Proprietary or MFi Bluetooth might require additional bridging hardware.
+  This tool assumes your hearing aids support standard Bluetooth profiles. Proprietary or MFi Bluetooth might require additional bridging hardware.
 
 
 ## Contributing
